@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>实验4 - 动态页面与数据交互</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        max-width: 700px;
+        margin: 0 auto;
+      }
+      .box {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 6px;
+      }
+      .article-card {
+        border-bottom: 1px dashed #eee;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+      }
+      .meta {
+        font-size: 12px;
+        color: #888;
+      }
+      ul {
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 1 & 2. 搜索框与文章列表展示区域 -->
+    <div class="box">
+      <h2>我的文章</h2>
+      <div>
+        <!-- 搜索关键字输入框 -->
+        <input type="text" id="searchKey" placeholder="输入文章标题关键字" />
+        <!-- 搜索按钮 -->
+        <button id="searchBtn">搜索</button>
+        <!-- 重置按钮 -->
+        <button id="resetBtn">重置</button>
+      </div>
+
+      <!-- 用于显示文章总数量的段落 -->
+      <p id="article-count"></p>
+      <!-- 用于动态渲染文章列表的容器 -->
+      <div id="article-list"></div>
+    </div>
+
+    <!-- 3 & 4. 留言板与本地持久化区域 -->
+    <div class="box">
+      <h2>给博主留言</h2>
+      <!-- 表单元素：用于收集用户留言 -->
+      <form id="msgForm">
+        <div>
+          <label>昵称：</label>
+          <input type="text" id="nickname" required />
+        </div>
+        <div style="margin-top: 8px">
+          <label>内容：</label>
+          <input type="text" id="msgContent" required />
+        </div>
+        <!-- 提交按钮：触发 form 的 submit 事件 -->
+        <button type="submit" style="margin-top: 8px">发表留言</button>
+      </form>
+
+      <h3>留言列表</h3>
+      <!-- 用于显示留言总数量的段落 -->
+      <p id="message-count"></p>
+      <!-- 用于动态追加留言项的无序列表 -->
+      <ul id="message-list"></ul>
+    </div>
+
+    <script>
+      // ================= 一、文章渲染与搜索 =================
+
+      // 1. 模拟文章数据（对象数组）
+      const articles = [
+        {
+          title: "我的第一篇博客",
+          date: "2026-09-01",
+          summary: "用文字记录学习与生活，从一个小小的博客开始。",
+        },
+        {
+          title: "用HTML搭建文章结构",
+          date: "2026-09-03",
+          summary: "先让内容有清晰的结构，再考虑页面的外观。",
+        },
+        {
+          title: "中秋节的月饼",
+          date: "2026-09-25",
+          summary: "月饼甜甜，生活也甜甜蜜蜜。",
+        },
+        {
+          title: "我的JavaScript复习计划",
+          date: "2026-09-28",
+          summary: "每天完成一个小练习，再用自己的话说一遍。",
+        },
+      ];
+
+      // 获取 DOM 元素
+      const articleList = document.getElementById("article-list");
+      const articleCount = document.getElementById("article-count");
+
+      /**
+       * 渲染文章函数：通过模板字符串生成 HTML 并更新 DOM
+       * @param {Array} list - 要渲染的文章数组
+       */
+      function renderArticles(list) {
+        // 更新文章数量显示
+        articleCount.textContent = `共 ${list.length} 篇文章`;
+
+        // 如果筛选后没有文章，显示提示信息
+        if (list.length === 0) {
+          articleList.innerHTML = "<p>未找到相关文章</p>";
+          return;
+        }
+
+        let html = "";
+        // 遍历数组，利用模板字符串拼接 HTML 结构
+        list.forEach((item) => {
+          html += `
+          <div class="article-card">
+            <div class="meta"><time>${item.date}</time></div>
+            <h3>${item.title}</h3>
+            <p>${item.summary}</p>
+          </div>
+        `;
+        });
+        // 一次性写入父容器的 innerHTML
+        articleList.innerHTML = html;
+      }
+
+      // 页面加载完成时，初始渲染全部文章
+      renderArticles(articles);
+
+      // 2. 搜索功能：点击搜索按钮时触发
+      document.getElementById("searchBtn").onclick = function () {
+        // 获取输入框的值，去除前后空格并转为小写（保证不区分大小写）
+        const keyword = document
+          .getElementById("searchKey")
+          .value.trim()
+          .toLowerCase();
+
+        // 使用 filter 方法过滤满足条件的文章
+        const filtered = articles.filter((item) =>
+          item.title.toLowerCase().includes(keyword),
+        );
+        // 重新渲染过滤后的文章列表
+        renderArticles(filtered);
+      };
+
+      // 重置功能：清空输入框并恢复显示全部文章
+      document.getElementById("resetBtn").onclick = function () {
+        document.getElementById("searchKey").value = "";
+        renderArticles(articles);
+      };
+
+      // ================= 二、留言板与本地存储 =================
+
+      // 3. 读取本地存储中的留言，若无则初始化为空数组
+      // localStorage.getItem 读取的是字符串，需通过 JSON.parse 转回 JS 数组
+      let messages = JSON.parse(localStorage.getItem("blog_messages")) || [];
+
+      // 获取留言板相关的 DOM 元素
+      const msgList = document.getElementById("message-list");
+      const msgCount = document.getElementById("message-count");
+      const msgForm = document.getElementById("msgForm");
+
+      /**
+       * 渲染留言列表函数：使用 createElement + append 动态创建节点
+       */
+      function renderMessages() {
+        // 更新留言总数量
+        msgCount.textContent = `共 ${messages.length} 条留言`;
+        msgList.innerHTML = ""; // 每次渲染前清空旧列表，防止重复追加
+
+        // 遍历留言数组，为每条留言创建 DOM 元素
+        messages.forEach((item) => {
+          const li = document.createElement("li"); // 创建 li 标签
+          // 设置 li 的内部 HTML 内容（加粗昵称 + 留言内容）
+          li.innerHTML = `<strong>${item.name}</strong>: ${item.content}`;
+          msgList.append(li); // 将 li 追加到 ul 列表中
+        });
+      }
+
+      // 4. 表单提交新增留言
+      msgForm.onsubmit = function (event) {
+        event.preventDefault(); // 阻止表单默认的刷新页面提交行为
+
+        const nameInput = document.getElementById("nickname");
+        const contentInput = document.getElementById("msgContent");
+
+        // 构建新留言对象
+        const newMsg = {
+          name: nameInput.value.trim(),
+          content: contentInput.value.trim(),
+        };
+
+        // 将新留言压入数组
+        messages.push(newMsg);
+
+        // 保存至 localStorage
+        // localStorage 只能存字符串，需用 JSON.stringify 将数组转为 JSON 字符串
+        localStorage.setItem("blog_messages", JSON.stringify(messages));
+
+        // 重新渲染留言列表
+        renderMessages();
+
+        // 清空输入框，准备下一次输入
+        nameInput.value = "";
+        contentInput.value = "";
+      };
+
+      // 页面初次加载时，调用函数显示本地已有的留言
+      renderMessages();
+    </script>
+  </body>
+</html>

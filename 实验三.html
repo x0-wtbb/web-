@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>实验3 - JavaScript基本语法和事件分析</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        transition: 0.3s;
+      }
+      /* 夜间模式样式：当 body 带有 night 类名时生效 */
+      body.night {
+        background-color: #222;
+        color: #fff;
+      }
+      .box {
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 6px;
+      }
+      .msg {
+        color: red;
+        font-size: 13px;
+        margin: 3px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 1. 换肤功能区域 -->
+    <div class="box">
+      <h3>1. 昼夜换肤</h3>
+      <button id="themeBtn">更换皮肤</button>
+    </div>
+
+    <!-- 2. 成绩统计功能区域 -->
+    <div class="box">
+      <h3>2. 学生成绩统计</h3>
+      及格线：
+      <select id="passLine">
+        <option value="60">60分</option>
+        <option value="70">70分</option>
+        <option value="80">80分</option>
+      </select>
+      <button id="calcBtn">统计成绩</button>
+      <p id="scoreResult">等待统计...</p>
+    </div>
+
+    <!-- 3. 表单校验功能区域 -->
+    <div class="box">
+      <h3>3. 注册表单校验</h3>
+      <form id="regForm">
+        <div>
+          <label>用户名：</label>
+          <input
+            type="text"
+            id="username"
+            placeholder="3~16位字母/数字/下划线"
+          />
+          <p id="userMsg" class="msg"></p>
+        </div>
+        <div>
+          <label>密 码：</label>
+          <input type="password" id="pwd" placeholder="6~20位密码" />
+          <p id="pwdMsg" class="msg"></p>
+        </div>
+        <div>
+          <label>确 认：</label>
+          <input type="password" id="confirmPwd" placeholder="再次输入密码" />
+          <p id="confirmMsg" class="msg"></p>
+        </div>
+        <div>
+          <label>邮 箱：</label>
+          <input type="text" id="email" placeholder="example@mail.com" />
+          <p id="emailMsg" class="msg"></p>
+        </div>
+        <button type="submit">提交注册</button>
+        <p id="formMsg" class="msg"></p>
+      </form>
+    </div>
+
+    <script>
+      // ==========================================
+      // 功能 1：昼夜换肤
+      // ==========================================
+      const themeBtn = document.getElementById("themeBtn");
+      // 给“更换皮肤”按钮绑定点击事件
+      themeBtn.onclick = function () {
+        // classList.toggle：如果元素没有 'night' 类就添加，如果有就移除，实现开关切换
+        document.body.classList.toggle("night");
+      };
+
+      // ==========================================
+      // 功能 2：学生成绩统计
+      // ==========================================
+      const scores = [58, 62, 85, 90, 45, 76]; // 模拟学生成绩数组
+      const calcBtn = document.getElementById("calcBtn");
+      const passLine = document.getElementById("passLine");
+      const scoreResult = document.getElementById("scoreResult");
+
+      calcBtn.onclick = function () {
+        // 获取下拉框选中的值，并通过 Number() 将字符串转换为数字类型
+        const line = Number(passLine.value);
+
+        // 使用数组的 filter 方法筛选出达到及格线的成绩
+        const passed = scores.filter((s) => s >= line);
+
+        // 使用 reduce 方法计算全班总分：total为累加器，cur为当前数组元素，初始值为 0
+        const sum = scores.reduce((total, cur) => total + cur, 0);
+
+        // 计算平均分，并用 toFixed(1) 保留一位小数
+        const avg = (sum / scores.length).toFixed(1);
+
+        // 将统计结果写入到对应的 p 标签中
+        scoreResult.textContent = `及格人数：${passed.length}，平均分：${avg}`;
+      };
+
+      // ==========================================
+      // 功能 3：表单验证（运用失去焦点事件 blur 与提交事件 submit）
+      // ==========================================
+      const username = document.getElementById("username");
+      const pwd = document.getElementById("pwd");
+      const confirmPwd = document.getElementById("confirmPwd");
+      const email = document.getElementById("email");
+      const regForm = document.getElementById("regForm");
+
+      // 1. 用户名失去焦点校验：3~16位字母/数字/下划线
+      username.onblur = function () {
+        const reg = /^\w{3,16}$/; // \w 匹配字母、数字、下划线
+        // test() 方法用于检测字符串是否匹配正则表达式
+        if (!reg.test(username.value.trim())) {
+          document.getElementById("userMsg").textContent =
+            "用户名需为 3~16 位字母、数字或下划线";
+          return false; // 校验不通过返回 false
+        }
+        document.getElementById("userMsg").textContent = ""; // 校验通过清空错误提示
+        return true; // 校验通过返回 true
+      };
+
+      // 2. 密码失去焦点校验：6~20位
+      pwd.onblur = function () {
+        if (pwd.value.length < 6 || pwd.value.length > 20) {
+          document.getElementById("pwdMsg").textContent = "密码需为 6~20 位";
+          return false;
+        }
+        document.getElementById("pwdMsg").textContent = "";
+        return true;
+      };
+
+      // 3. 确认密码失去焦点校验：两次输入必须一致且不能为空
+      confirmPwd.onblur = function () {
+        if (confirmPwd.value !== pwd.value || confirmPwd.value === "") {
+          document.getElementById("confirmMsg").textContent =
+            "两次输入的密码不一致";
+          return false;
+        }
+        document.getElementById("confirmMsg").textContent = "";
+        return true;
+      };
+
+      // 4. 邮箱失去焦点校验：匹配标准邮箱格式
+      email.onblur = function () {
+        const reg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!reg.test(email.value.trim())) {
+          document.getElementById("emailMsg").textContent =
+            "请输入正确的邮箱格式";
+          return false;
+        }
+        document.getElementById("emailMsg").textContent = "";
+        return true;
+      };
+
+      // 5. 表单提交事件处理
+      regForm.onsubmit = function (event) {
+        event.preventDefault(); // 阻止表单默认的提交并刷新页面的行为
+
+        // 手动触发并获取所有输入框的校验结果
+        const v1 = username.onblur();
+        const v2 = pwd.onblur();
+        const v3 = confirmPwd.onblur();
+        const v4 = email.onblur();
+
+        const formMsg = document.getElementById("formMsg");
+        // 只有当所有字段校验都为 true 时，才算整体注册成功
+        if (v1 && v2 && v3 && v4) {
+          formMsg.style.color = "green";
+          formMsg.textContent = "注册成功！已打印到控制台。";
+          console.log("表单数据：", {
+            username: username.value,
+            password: pwd.value,
+            email: email.value,
+          });
+        } else {
+          formMsg.style.color = "red";
+          formMsg.textContent = "请根据提示修改后再提交。";
+        }
+      };
+    </script>
+  </body>
+</html>
